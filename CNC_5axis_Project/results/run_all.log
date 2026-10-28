@@ -1,0 +1,39 @@
+== kinematics.py
+inverse -> forward round trip, 1000 random poses: max error 1.42e-14
+tool tilted 30 deg toward +Y at (10, 0, 20): [ 10.    -10.     17.321  30.      0.   ]
+== motion_planner.py
+toolpath: 2882 points, A range 0.0..60.0 deg, C turned -4230 deg; min holder clearance 8.6 mm; limit violations 0
+Constant feed (no limits)      cycle   77.5 s  mean feed  20.0 mm/s  max speed   1100% of limit (Y)  max accel    7088% of limit
++ joint speed limits           cycle   80.1 s  mean feed  19.3 mm/s  max speed    100% of limit (X)  max accel      80% of limit
++ joint acceleration limits    cycle   80.1 s  mean feed  19.3 mm/s  max speed    100% of limit (X)  max accel      80% of limit
+clearance check: tool tilted 80 deg at the dome's foot -> -4.5 mm (collision)
+G-code: 2890 lines; read back and forward kinematics: max tool-point error 0.0011 mm, total time 80.1 s
+== axis_control.py
+P       RMS following error X   81.36 um  Z  402.71 um  C   85.95 mdeg | contour RMS 399.21 um max 668.81 um
+PID     RMS following error X   20.67 um  Z   11.89 um  C    8.52 mdeg | contour RMS  23.96 um max 301.92 um
+PID+FF  RMS following error X   19.65 um  Z    3.13 um  C    2.22 mdeg | contour RMS  20.66 um max  72.82 um
+PID+FF wn   5 Hz: contour RMS 1343.67 um, max 2819.22 um
+PID+FF wn  10 Hz: contour RMS 276.02 um, max 639.69 um
+PID+FF wn  25 Hz: contour RMS 20.66 um, max 72.82 um
+PID+FF wn  50 Hz: contour RMS 3.78 um, max 42.36 um
+PID+FF wn  80 Hz: contour RMS 1.46 um, max 71.34 um
+Z step P      : final -398.4 um, overshoot 122.3 um
+Z step PID    : final -0.7 um, overshoot 136.1 um
+Z step PID+FF : final -0.3 um, overshoot 1.3 um
+== tool_monitor.py
+Hand-written rules          test accuracy  84.0%
+Decision tree (depth 4)     test accuracy  97.0%
+Random forest (100 trees)   test accuracy  98.8%
+job demo disagreements (time, wear, true, predicted): [(56, 0.42, 'worn', 'normal')]
+job demo: per-second accuracy 99%; actions: [(0, 'chatter: spindle speed +15%'), (54, 'worn: feed -20%, tool change flagged'), (100, 'broken tooth: feed hold, spindle stop')]
+== probing.py
+No measurement (assume nominal)  success 100.0%  mean error   6.282 mm  worst  12.846 mm
+Vision only                      success 100.0%  mean error   0.397 mm  worst   0.775 mm
+Probe only (blind start)         success  17.0%  mean error   0.003 mm  worst   0.008 mm
+Vision + probe                   success 100.0%  mean error   0.003 mm  worst   0.009 mm
+ 2 long-edge probe points: mean angle error 9.6 arc-seconds
+ 3 long-edge probe points: mean angle error 8.1 arc-seconds
+ 5 long-edge probe points: mean angle error 7.4 arc-seconds
+ 8 long-edge probe points: mean angle error 6.1 arc-seconds
+12 long-edge probe points: mean angle error 5.5 arc-seconds
+== draw_architecture.py

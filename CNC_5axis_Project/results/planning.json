@@ -1,0 +1,40 @@
+{
+ "points": 2882,
+ "A_range": [
+  0.0,
+  59.99971233254269
+ ],
+ "C_total": -4229.979287943074,
+ "min_holder_clearance": 8.608023665044476,
+ "limit_violations": 0,
+ "steep_tilt_clearance": -4.4764885944732375,
+ "gcode_lines": 2890,
+ "gcode_roundtrip_error": 0.0010759623004350516,
+ "cases": [
+  {
+   "name": "Constant feed (no limits)",
+   "cycle_s": 77.4742778978289,
+   "max_speed_ratio": 11.003655712375833,
+   "max_accel_ratio": 70.88408820875982,
+   "worst_axis_speed": "Y",
+   "mean_feed": 20.0
+  },
+  {
+   "name": "+ joint speed limits",
+   "cycle_s": 80.08455625568058,
+   "max_speed_ratio": 1.0000000000000002,
+   "max_accel_ratio": 0.802272059289406,
+   "worst_axis_speed": "X",
+   "mean_feed": 19.34811941780185
+  },
+  {
+   "name": "+ joint acceleration limits",
+   "cycle_s": 80.08455625568058,
+   "max_speed_ratio": 1.0000000000000002,
+   "max_accel_ratio": 0.802272059289406,
+   "worst_axis_speed": "X",
+   "mean_feed": 19.34811941780185
+  }
+ ],
+ "feed": 20.0
+}

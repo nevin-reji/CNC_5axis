@@ -1,0 +1,92 @@
+{
+ "accuracy": {
+  "Hand-written rules": 0.84,
+  "Decision tree (depth 4)": 0.97,
+  "Random forest (100 trees)": 0.9875
+ },
+ "confusion_rf": [
+  [
+   97,
+   3,
+   0,
+   0
+  ],
+  [
+   2,
+   98,
+   0,
+   0
+  ],
+  [
+   0,
+   0,
+   100,
+   0
+  ],
+  [
+   0,
+   0,
+   0,
+   100
+  ]
+ ],
+ "confusion_rules": [
+  [
+   54,
+   46,
+   0,
+   0
+  ],
+  [
+   18,
+   82,
+   0,
+   0
+  ],
+  [
+   0,
+   0,
+   100,
+   0
+  ],
+  [
+   0,
+   0,
+   0,
+   100
+  ]
+ ],
+ "importance": {
+  "feed (known)": 0.009,
+  "cutting current / feed": 0.069,
+  "current ripple": 0.098,
+  "vibration RMS": 0.235,
+  "vibration kurtosis": 0.154,
+  "chatter-band share": 0.083,
+  "tooth-pass share": 0.177,
+  "1x-rev / tooth-pass": 0.175
+ },
+ "job_accuracy": 0.9900990099009901,
+ "job_actions": [
+  [
+   0,
+   "chatter: spindle speed +15%"
+  ],
+  [
+   54,
+   "worn: feed -20%, tool change flagged"
+  ],
+  [
+   100,
+   "broken tooth: feed hold, spindle stop"
+  ]
+ ],
+ "job_disagreements": [
+  [
+   56,
+   0.42,
+   "worn",
+   "normal"
+  ]
+ ]
+}

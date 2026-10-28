@@ -1,0 +1,47 @@
+INTELLIGENT 5-AXIS CNC - SETUP ON WINDOWS
+=========================================
+
+You do not need to install anything just to READ the work:
+  - IA3_REPORT_CNC.docx / IA3_REPORT_CNC.pdf   the report
+  - sim\cnc_sim.html                            3D simulator: double-click, opens in your browser
+                                                 (needs internet once, to load the 3D library)
+  - docs\LEARN.md                               plain-language guide + viva questions
+  - results\                                    all figures and results already generated
+
+
+1. Run the Python code (to regenerate the results)
+--------------------------------------------------
+a) Install Python 3.10 or newer from https://www.python.org/downloads/
+   IMPORTANT: on the first installer screen tick "Add python.exe to PATH".
+b) Open "Command Prompt", go to this folder, and install the libraries:
+       cd path\to\CNC_5axis_Project
+       python -m pip install -r requirements.txt
+c) Double-click  run_all.bat   (or type:  python run_all.py)
+   It takes about 40 seconds and rewrites everything in results\ and sim\toolpath.js.
+
+   If "python" is not found, try "py" instead:  py run_all.py
+
+
+2. Rebuild the Word report (optional)
+-------------------------------------
+a) Install Node.js (LTS) from https://nodejs.org/
+b) Close IA3_REPORT_CNC.docx in Word.
+c) Double-click  build_report.bat
+   The first time it downloads the "docx" package (needs internet), then writes
+   IA3_REPORT_CNC.docx with the latest numbers from results\.
+   To make a PDF, open the .docx in Word and use File > Save As > PDF.
+
+
+3. Files
+--------
+  kinematics.py        forward / inverse kinematics (start here)
+  toolpath.py          dome toolpath, collision check, G-code
+  motion_planner.py    feed planning, G-code file, simulator data
+  axis_control.py      PID + feedforward servo control
+  tool_monitor.py      machine-learning tool monitoring
+  probing.py           camera + touch-probe part finding
+  firmware\            Arduino servo firmware (for the real machine later)
+  docs\HARDWARE.md     parts list and wiring for a real build
+  report\              script that builds the Word report
+
+The .md files open in any text editor, or nicely in VS Code (Ctrl+Shift+V for preview).

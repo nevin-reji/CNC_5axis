@@ -1,0 +1,40 @@
+{
+ "methods": {
+  "No measurement (assume nominal)": {
+   "success": 1.0,
+   "mean_err_mm": 6.281542400220231,
+   "max_err_mm": 12.846118154911187
+  },
+  "Vision only": {
+   "success": 1.0,
+   "mean_err_mm": 0.3965961215137956,
+   "max_err_mm": 0.7749394517409756
+  },
+  "Probe only (blind start)": {
+   "success": 0.17,
+   "mean_err_mm": 0.0033030715192133987,
+   "max_err_mm": 0.007886327320489038
+  },
+  "Vision + probe": {
+   "success": 1.0,
+   "mean_err_mm": 0.00331161976041252,
+   "max_err_mm": 0.008852314059319136
+  }
+ },
+ "probe_points": [
+  2,
+  3,
+  5,
+  8,
+  12
+ ],
+ "angle_err_arcsec": [
+  9.563170435764228,
+  8.072875361891557,
+  7.397022127518922,
+  6.082973287272352,
+  5.4915516546883305
+ ],
+ "probe_sigma_mm": 0.002,
+ "search_mm": 3.0
+}

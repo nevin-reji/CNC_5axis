@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5-Axis CNC Simulator</title>
+<style>
+  :root { --bg:#f4f5f7; --panel:#ffffff; --ink:#1f2937; --muted:#6b7280; --line:#d1d5db; --accent:#2563eb; --warn:#b45309; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:12px 16px; border-bottom:1px solid var(--line); background:var(--panel); }
+  header h1 { margin:0; font-size:18px; }
+  header p { margin:2px 0 0; color:var(--muted); font-size:13px; }
+  main { display:grid; grid-template-columns: 1fr 300px; gap:12px; padding:12px; }
+  #view { position:relative; background:#e9edf2; border:1px solid var(--line); border-radius:8px; min-height:520px; overflow:hidden; }
+  #view canvas { display:block; width:100%; height:100%; cursor:grab; }
+  #hint { position:absolute; left:10px; bottom:8px; font-size:12px; color:var(--muted); }
+  aside { display:flex; flex-direction:column; gap:12px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; }
+  .card h2 { margin:0 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  table { width:100%; border-collapse:collapse; font-variant-numeric: tabular-nums; }
+  td { padding:3px 0; } td.v { text-align:right; font-family: ui-monospace, Menlo, monospace; }
+  button { font:inherit; padding:6px 12px; border:1px solid var(--line); border-radius:6px; background:#fff; cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  label { display:block; margin-top:8px; font-size:13px; }
+  input[type=range] { width:100%; }
+  #sing { color:var(--warn); font-weight:600; min-height:1.4em; font-size:13px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; } #view { min-height:380px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>5-axis CNC simulator: dome finishing</h1>
+  <p>Table-tilting machine: the spindle moves in X, Y, Z; the table tilts (A) and spins (C). The tool stays perpendicular to the dome. Data: sim/toolpath.js, made by motion_planner.py.</p>
+</header>
+<main>
+  <div id="view"><div id="hint">Drag to orbit, scroll to zoom</div></div>
+  <aside>
+    <div class="card">
+      <h2>Playback</h2>
+      <div class="row"><button id="play" class="primary">Pause</button><button id="restart">Restart</button></div>
+      <label>Speed <b id="spdv">4x</b><input id="spd" type="range" min="1" max="20" value="4"></label>
+      <label>Program time <b id="tv">0.0 s</b><input id="scrub" type="range" min="0" max="1000" value="0"></label>
+      <label><input id="trail" type="checkbox" checked> Show cut path on the part</label>
+    </div>
+    <div class="card">
+      <h2>Joint positions</h2>
+      <table>
+        <tr><td>X</td><td class="v" id="jX"></td></tr>
+        <tr><td>Y</td><td class="v" id="jY"></td></tr>
+        <tr><td>Z</td><td class="v" id="jZ"></td></tr>
+        <tr><td>A (tilt)</td><td class="v" id="jA"></td></tr>
+        <tr><td>C (spin)</td><td class="v" id="jC"></td></tr>
+        <tr><td>Tool speed on part</td><td class="v" id="feed"></td></tr>
+      </table>
+      <div id="sing"></div>
+    </div>
+    <div class="card">
+      <h2>What to look for</h2>
+      <p style="margin:0;font-size:13px">At the top of the dome the tool is vertical (A near 0). A small step there needs a large C turn, so the planner slows the feed: this is the <b>singularity</b>. The part sits off-centre, so X and Y move to keep the tool on it while the table turns (tool-centre-point control).</p>
+    </div>
+  </aside>
+</main>
+<script src="toolpath.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const TP = window.TOOLPATH;
+const view = document.getElementById('view');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+view.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xe9edf2);
+const camera = new THREE.PerspectiveCamera(40, 1, 1, 5000);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 0.9));
+const sun = new THREE.DirectionalLight(0xffffff, 0.6); sun.position.set(200, 400, 300); scene.add(sun);
+
+// Everything inside `M` uses machine coordinates (Z up, mm)
+const M = new THREE.Group(); M.rotation.x = -Math.PI / 2; scene.add(M);
+const mat = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, metalness: 0.3, roughness: 0.6, ...o });
+const box = (w, d, h, c) => new THREE.Mesh(new THREE.BoxGeometry(w, d, h), mat(c));
+const cylZ = (r, h, c, seg = 48) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), mat(c)); m.rotation.x = Math.PI / 2; return m; };
+
+// Fixed machine frame
+const base = box(420, 300, 30, 0x9ca3af); base.position.z = -130; M.add(base);
+for (const s of [-1, 1]) { const p = box(30, 80, 110, 0xa3aab4); p.position.set(s * 125, 0, -70); M.add(p); }
+const column = box(80, 60, 360, 0xb8bec7); column.position.set(0, 190, 50); M.add(column);
+
+// A trunnion (tilts about X) -> C table (spins about Z) -> part
+const A = new THREE.Group(); M.add(A);
+const cradle = box(230, 120, 12, 0x6b7280); cradle.position.z = -40; A.add(cradle);
+for (const s of [-1, 1]) { const w = box(12, 120, 40, 0x6b7280); w.position.set(s * 109, 0, -20); A.add(w); }
+const C = new THREE.Group(); A.add(C);
+const table = cylZ(80, 14, 0x4b5563); table.position.z = -7; C.add(table);
+for (let k = 0; k < 4; k++) { const sl = box(150, 3, 1, 0x374151); sl.rotation.z = k * Math.PI / 4; sl.position.z = 0.2; C.add(sl); }
+const cap = Math.acos(TP.H / TP.R);
+const domeGeo = new THREE.SphereGeometry(TP.R, 64, 32, 0, Math.PI * 2, 0, cap);
+const dome = new THREE.Mesh(domeGeo, mat(0xd6dde6, { metalness: 0.5, roughness: 0.35 }));
+dome.rotation.x = Math.PI / 2; dome.position.set(TP.offset[0], TP.offset[1], -TP.H); C.add(dome);
+const trailGeo = new THREE.BufferGeometry();
+const trailPos = new Float32Array(TP.p.length * 3);
+TP.p.forEach((p, i) => { trailPos.set([p[0], p[1], p[2] - TP.ball + 0.15], 3 * i); });
+trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
+const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0xdc2626 }));
+C.add(trail);
+
+// Spindle: moves in X, Y, Z. Its origin is the centre of the ball-end tool.
+const S = new THREE.Group(); M.add(S);
+const ball = new THREE.Mesh(new THREE.SphereGeometry(TP.ball, 24, 16), mat(0xf59e0b)); S.add(ball);
+const flute = cylZ(TP.ball, 25, 0xf59e0b, 24); flute.position.z = 12.5; S.add(flute);
+const holder = cylZ(12, 30, 0x374151); holder.position.z = 25 + 15; S.add(holder);
+const head = box(70, 70, 90, 0x1f2937); head.position.z = 55 + 45; S.add(head);
+
+// Camera orbit
+let yaw = -0.7, pitch = 0.42, dist = 640, drag = null;
+const target = new THREE.Vector3(0, 30, 0);
+function placeCamera() {
+  camera.position.set(target.x + dist * Math.cos(pitch) * Math.sin(yaw), target.y + dist * Math.sin(pitch),
+                      target.z + dist * Math.cos(pitch) * Math.cos(yaw));
+  camera.lookAt(target);
+}
+renderer.domElement.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY]; renderer.domElement.setPointerCapture(e.pointerId); });
+renderer.domElement.addEventListener('pointermove', e => {
+  if (!drag) return;
+  yaw -= (e.clientX - drag[0]) * 0.006; pitch = Math.max(-0.2, Math.min(1.4, pitch + (e.clientY - drag[1]) * 0.006));
+  drag = [e.clientX, e.clientY];
+});
+renderer.domElement.addEventListener('pointerup', () => { drag = null; });
+renderer.domElement.addEventListener('wheel', e => { e.preventDefault(); dist = Math.max(150, Math.min(1500, dist * (1 + e.deltaY * 0.001))); }, { passive: false });
+function resize() { const w = view.clientWidth, h = view.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+window.addEventListener('resize', resize);
+
+// Playback
+const T_END = TP.t[TP.t.length - 1];
+let t = 0, playing = true, last = performance.now();
+const $ = id => document.getElementById(id);
+$('play').onclick = () => { playing = !playing; $('play').textContent = playing ? 'Pause' : 'Play'; };
+$('restart').onclick = () => { t = 0; };
+$('scrub').oninput = e => { t = e.target.value / 1000 * T_END; };
+$('trail').onchange = e => { trail.visible = e.target.checked; };
+$('spd').oninput = e => { $('spdv').textContent = e.target.value + 'x'; };
+
+function sample(time) {
+  let i = 0, j = TP.t.length - 1;
+  while (j - i > 1) { const m = (i + j) >> 1; if (TP.t[m] <= time) i = m; else j = m; }
+  const f = Math.min(1, Math.max(0, (time - TP.t[i]) / (TP.t[j] - TP.t[i] || 1)));
+  return { q: TP.q[i].map((v, k) => v + f * (TP.q[j][k] - v)), i, j };
+}
+const rad = d => d * Math.PI / 180;
+function frame(now) {
+  const dt = (now - last) / 1000; last = now;
+  if (playing) { t += dt * +$('spd').value; if (t > T_END) t = 0; }
+  const { q, i, j } = sample(t);
+  S.position.set(q[0], q[1], q[2]);
+  A.rotation.x = rad(q[3]);
+  C.rotation.z = rad(q[4]);
+  trailGeo.setDrawRange(0, j + 1);
+  const pi = TP.p[i], pj = TP.p[j];
+  const feed = Math.hypot(pj[0] - pi[0], pj[1] - pi[1], pj[2] - pi[2]) / ((TP.t[j] - TP.t[i]) || 1);
+  ['X', 'Y', 'Z'].forEach((n, k) => $('j' + n).textContent = q[k].toFixed(2) + ' mm');
+  $('jA').textContent = q[3].toFixed(2) + ' deg'; $('jC').textContent = q[4].toFixed(1) + ' deg';
+  $('feed').textContent = feed.toFixed(1) + ' mm/s';
+  $('sing').textContent = Math.abs(q[3]) < 8 ? 'Near the singularity (A < 8 deg): C spins fast, feed reduced' : '';
+  $('tv').textContent = t.toFixed(1) + ' s / ' + T_END.toFixed(0) + ' s';
+  $('scrub').value = Math.round(t / T_END * 1000);
+  placeCamera();
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+resize();
+const ff = parseFloat(new URLSearchParams(location.search).get('t'));
+if (ff) t = ff;
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
